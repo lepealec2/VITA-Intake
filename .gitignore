@@ -1,0 +1,7 @@
+# Ignore all JSON files
+*.json
+
+# Ignore all pickle files
+*.pkl
+*.pkl
+token.pkl
