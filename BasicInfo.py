@@ -185,7 +185,7 @@ def HealthInsurance():
                             f"The 1095-A lists someone not on {pronouns} tax return",
                             "A person on this tax return was enrolled in another taxpyers Marketplace coverage. (The person is listed on a Form 1095-A sent to a taxpayer not on this tax return.)",
                             f"You got married during {answers.get('tax_year')}, were unmarried as of January 1st, {answers.get('tax_year')}, and want to do an alternative calculation for year of marriage.",
-                            f"{Pronouns} are self employed and want to deduct their health insurance premiums."]
+                            f"{Pronouns} are self employed and want to deduct health insurance premiums."]
         if  "1095-A" in health_forms:
             ask_question(answers, "1095-A_Warning", "Please check any that apply.", 
                         input_type="checkbox",
@@ -361,7 +361,7 @@ def Income():
             ask_question(
                 answers,
                 "Number_of_W-2G",
-                f"How many W-2G Ffrms do {pronouns} have?",
+                f"How many W-2G forms do {pronouns} have?",
                 input_type="number",step=1
             )
         ask_question(
@@ -431,6 +431,7 @@ def Income():
                     f"How many 1099-C forms do {pronouns} have? ",
                     input_type="number",step=1
                                 )
+                        
 
 
 def F1099R():
@@ -869,6 +870,64 @@ def SchD():
         if answers.get('complex_basis') == "Yes":
                 st.warning("❌ Out of scope.")
                 return
+        ask_question(
+            answers,
+            "Sell_Home",
+            f"Do {(pronouns)} sell a home in {answers.get('tax_year')}?",
+            input_type="radio",
+            options=yes_no
+        )  
+        if answers.get("Sell_Home") == "Yes":
+            ask_question(
+                answers,
+                "primary_residency_sale_home",
+                f"Was it {pronouns} primary residency for at least 2 out of the least 5 years?",
+                input_type="radio",
+                options=typical_basic_response
+            )
+            if answers.get('primary_residency_sale_home') == "No":
+                st.warning("❌ Out of scope.")
+                return
+            if answers.get("primary_residency_sale_home") == "No":
+                ask_question(
+                answers,
+                "primary_residency_sale_home",
+                f"Was it {pronouns} primary residency for at least 2 out of the least 5 years?",
+                options=typical_basic_response
+            ) #reduced exclusion
+            if answers.get('primary_residency_sale_home') == "No":
+                st.warning("❌ Out of scope.")
+                return
+            if answers.get('primary_residency_sale_home') == "Yes":
+                ask_question(
+                answers,
+                "1099-S",
+                f"Did {pronouns} receive a 1099-S for the sale of the home?",
+                input_type="radio",
+                options=yes_no
+            ) #reduced exclusion
+            if answers.get('1099-S') == "Yes":
+                st.warning("✅ In scope, please have the form handy for tax volunteer.")
+                return
+            limit_single = 250000
+            limit_married = 500000
+
+            if answers.get('primary_residency_sale_home') == "Yes":
+                ask_question(
+                    answers,
+                    "Home_Deduction_Amount",
+                    question=f"Did the sale of the home result in a net gain greater than ${limit_single:,} (or ${limit_married:,} if married filing jointly)?",
+                    input_type="radio",
+                    options=yes_no
+                )
+            if answers.get('Home_Deduction_Amount') == "Yes":
+                st.warning(f"✅ In scope, {pronouns} must report the sale of the home.")
+                return
+            if answers.get('Home_Deduction_Amount') == "No":
+                st.warning(f"✅ In scope, {pronouns} do not have to the sale of the home.")
+                return
+
+
 
 
 def Deductions():

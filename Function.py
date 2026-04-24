@@ -222,7 +222,13 @@ def generate_pdf(answers_dict):
     from fpdf import FPDF
 
     def clean(v):
-        return "" if v is None else str(v)
+        if v is None:
+            return "Not answered"
+        if isinstance(v, str) and not v.strip():
+            return "Not answered"
+        if isinstance(v, (list, dict)) and not v:
+            return "Not answered"
+        return str(v)
 
     name = answers_dict.get("name", "questionnaire").replace(" ", "_")
     filename = f"{name}.pdf"
@@ -244,6 +250,7 @@ def generate_pdf(answers_dict):
         # ESTIMATED TAX
         # =========================
         if key.lower() == "estimatedtax" and isinstance(value, dict):
+            pdf.add_page() 
             pdf.set_font("Arial", "B", 12)
             pdf.cell(0, 8, "Estimated Tax Payments", ln=True)
             pdf.set_font("Arial", "", 11)
@@ -304,7 +311,7 @@ def generate_pdf(answers_dict):
             row_h = 7
 
             for i, biz in enumerate(value):
-
+                pdf.add_page() 
                 pdf.set_font("Arial", "B", 11)
                 pdf.cell(0, 7, f"Business #{i+1}", ln=True)
                 pdf.ln(1)
@@ -404,9 +411,9 @@ def generate_pdf(answers_dict):
                 ref_date = datetime.date(tax_year, 12, 31)
 
                 for i, child in enumerate(children, start=1):
+                    pdf.add_page() 
                     if not isinstance(child, dict):
                         continue
-
                     pdf.set_font("Arial", "B", 11)
                     pdf.cell(0, 7, f"Child #{i}", ln=True)
                     pdf.set_font("Arial", "", 10)
