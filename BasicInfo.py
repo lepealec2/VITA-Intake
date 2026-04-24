@@ -10,6 +10,8 @@ answers={}
 pronouns='you'
 Pronouns='You'
 pronouns2='your'
+pronouns2_spouse="your spouse"
+consent_options=["Yes, I consent to put in personally identifiable information.","No, I do not consent to put in any personal identifable information here."]
 
 
 def Disclaimers():
@@ -37,28 +39,39 @@ def RequiredDocuments():
         
 
 def BasicInfo():
-    global answers, pronouns, pronouns2
+    global answers, pronouns, pronouns2, consent_options
     # Dictionary to store answers
     # Collect user input
     #(answers, key_name, question, input_type="text", options=None, columns=True)
     # Single-selection Filing Status
-    current_tax_year=date.today().year-1
+    current_Tax_Year=date.today().year-1
     with st.expander("Basic Information ", expanded=False):
-        ask_question(answers, "tax_year",
+        ask_question(answers, "PII",
+            "Optional: I want to put in personal identifiable information like bank account information and social security numbers.",
+            input_type="radio",
+            options=consent_options,
+            index=1,use_index=True,
+            help_text="Regardless of whether you consent, please have all information handy for the tax preparer."
+        )  
+        ask_question(answers, "Tax_Year",
             "Select the Tax Year:",
             input_type="radio",
-            options=list(range(current_tax_year, current_tax_year - 5, -1)),
+            options=list(range(current_Tax_Year, current_Tax_Year - 5, -1)),
             index=0,use_index=True
         )  
-        if answers.get('tax_year') in range(current_tax_year-3, current_tax_year - 5, -1):
+        if answers.get('Tax_Year') in range(current_Tax_Year-3, current_Tax_Year - 5, -1):
              st.warning("⚠️ As they are no longer accepting e-files for this tax year anymore, this will have to be a paper return, meaning you will have to mail in the tax return to the IRS and/or the FTB.")
         ask_question(answers, "name", "First Name", input_type="text")
-        ask_question(answers, "email", "Email", input_type="text")
+        if answers.get('PII') == consent_options[0]:
+            ask_question(answers,"Address","Address",input_type="text",)
+            ask_question(answers,"Zip_Code","Zip Code",input_type="text",)
+            ask_question(answers,"City","City",input_type="text",)
+        ask_question(answers, "EMail", "Email", input_type="text")
         filings_statuses = ["Single", "Head of Houeshold", "Married Filing Jointly", "Married Filing Separately","Other","Unsure"]
         ask_question(answers, "phone", "Phone Number", input_type="text")
         ask_question(
             answers,
-            "filing_status",
+            "Filing_Status",
             "Select your filing status:",
             input_type="radio",
             options=filings_statuses,
@@ -72,22 +85,22 @@ def BasicInfo():
             options=typical_basic_response,
             columns=False
         )
-        if answers.get('filing_status') == "Married Filing Jointly":
+        if answers.get('Filing_Status') == "Married Filing Jointly":
             pronouns='you or your spouse'
             Pronouns='you or your spouse'
             pronouns2="your or your spouse's"
-        if answers.get('filing_status') == "Other" or answers.get('filing_status') == "Unsure":
+        if answers.get('Filing_Status') == "Other" or answers.get('Filing_Status') == "Unsure":
             ask_question(
                 answers,
-                "filing_status_other",
+                "Filing_Status_other",
                 "Explain your filing status:",
                 input_type="text_input",
             )
-        if answers.get('filing_status') == "Married Filing Separately":
+        if answers.get('Filing_Status') == "Married Filing Separately":
             ask_question(
                 answers,
                 "legally_married",
-               f"Were you legally married as of December 31, {answers.get('tax_year')}?",
+               f"Were you legally married as of December 31, {answers.get('Tax_Year')}?",
                             input_type="radio",
                 options=yes_no,
                 help_text="\n\n You are considered married if you were legally seperated under a divorce or separated maintenance agreement decree. \n\n Marriage status does not depend on where a spouse lives."
@@ -96,7 +109,7 @@ def BasicInfo():
                 ask_question(
                     answers,
                     "spouse_died",
-        f"Did your spouse die in {answers.get('tax_year')-2} or {answers.get('tax_year')-1}?",
+        f"Did your spouse die in {answers.get('Tax_Year')-2} or {answers.get('Tax_Year')-1}?",
                                 input_type="radio",
                     options=yes_no
                 )
@@ -115,7 +128,7 @@ def BasicInfo():
                     ask_question(
                         answers,
                         "married_follow_up_questions",
-                    f"Do all the following apply? \n\n• You file a separate return from your spouse \n\n• You paid more than half the cost of keeping up your home for the required period of time \n\n• Your spouse did not live in your home during the last 6 months of {answers.get('tax_year')} \n\n• Your home was the main home of your child, stepchild, or foster child for more than half the year (a grandchild doesn’t meet this test). For rules applying to birth, death, or temporary absence during the year, see Publication 17 \n\n• You claim an exemption for the child (unless the noncustodial parent claims the child under rules for divorced or separated parents or parents who live apart)",
+                    f"Do all the following apply? \n\n• You file a separate return from your spouse \n\n• You paid more than half the cost of keeping up your home for the required period of time \n\n• Your spouse did not live in your home during the last 6 months of {answers.get('Tax_Year')} \n\n• Your home was the main home of your child, stepchild, or foster child for more than half the year (a grandchild doesn’t meet this test). For rules applying to birth, death, or temporary absence during the year, see Publication 17 \n\n• You claim an exemption for the child (unless the noncustodial parent claims the child under rules for divorced or separated parents or parents who live apart)",
                                     input_type="radio",
                         options=yes_no
                     )
@@ -129,7 +142,7 @@ def BasicInfo():
             ask_question(
                 answers,
                 "qualified_surviving_spouse",
-                    f"Do all of the following apply? \n\n• You were entitled to file a joint return with your spouse for the year your spouse died \n\n• You didn’t remarry before the end of {answers.get('tax_year')} \n\n• You have a child or stepchild who lived with you all year, except for temporary absences or other limited exceptions, and who is your dependent or who would qualify as your dependent except that: he or she does not meet the gross income test, does not meet the joint return test, or except that you may be claimed as a dependent by another taxpayer. Don’t include a grandchild or foster child \n\n• You paid more than half the cost of keeping up the home for {answers.get('tax_year')}",
+                    f"Do all of the following apply? \n\n• You were entitled to file a joint return with your spouse for the year your spouse died \n\n• You didn’t remarry before the end of {answers.get('Tax_Year')} \n\n• You have a child or stepchild who lived with you all year, except for temporary absences or other limited exceptions, and who is your dependent or who would qualify as your dependent except that: he or she does not meet the gross income test, does not meet the joint return test, or except that you may be claimed as a dependent by another taxpayer. Don’t include a grandchild or foster child \n\n• You paid more than half the cost of keeping up the home for {answers.get('Tax_Year')}",
                             input_type="radio",
                 options=yes_no
             )
@@ -140,7 +153,7 @@ def BasicInfo():
             ask_question(
                 answers,
                 "MFS_HOH_S",
-                f"Do both of the following apply? \n\n• You paid more than 1/2 the cost of keeping up your home for {answers.get('tax_year')} \n\n• A “qualifying person” lived with you in your home for more than 1/2 the year. If the qualifying person is your dependent parent, your dependent parent does not have to live with you",
+                f"Do both of the following apply? \n\n• You paid more than 1/2 the cost of keeping up your home for {answers.get('Tax_Year')} \n\n• A “qualifying person” lived with you in your home for more than 1/2 the year. If the qualifying person is your dependent parent, your dependent parent does not have to live with you",
                             input_type="radio",
                 options=yes_no )
             if answers.get('MFS_HOH_S')=="Yes":
@@ -161,32 +174,32 @@ def HealthInsurance():
                  "I am unsure"]
         ask_question(
             answers,
-            "insurance_status",
+            "Health_Insurance",
             f"Did {pronouns} have health insurance for any member of {pronouns2} household?",
             input_type="radio",
             options=health_insurance_responses,
             columns=False,  # important
             help_text=f"Household includes {pronouns} and anyone {pronouns} claim as a dependent on {pronouns2} tax return."
         )
-        if answers.get("insurance_status") in health_insurance_responses[0:2]:
-            ask_question(answers, "health_forms", f"Which form(s) do {pronouns} have?", 
+        if answers.get("Health_Insurance") in health_insurance_responses[0:2]:
+            ask_question(answers, "Health_Forms", f"Which form(s) do {pronouns} have?", 
                         input_type="checkbox",
                         options=["1095-A", "1095-B", "1095-C"],
                         columns=True)
 
         # Coverage type with multiple selection
-            ask_question(answers, "coverage_type", "Type of Health Care Coverage",
+            ask_question(answers, "Coverage_Type", "Type of Health Care Coverage",
                         input_type="checkbox",
                         options=["Marketplace","Medi-Cal", "Medicaid", "Medicare", "Employee Sponsored", "Other"],
                         columns=False)
-        health_forms=answers.get("health_forms") or []
+        Health_Forms=answers.get("Health_Forms") or []
         health_1095_a=[
                             "Some people in my household are listed on my 1095-A but some members have their own health insurance",
                             f"The 1095-A lists someone not on {pronouns} tax return",
                             "A person on this tax return was enrolled in another taxpyers Marketplace coverage. (The person is listed on a Form 1095-A sent to a taxpayer not on this tax return.)",
-                            f"You got married during {answers.get('tax_year')}, were unmarried as of January 1st, {answers.get('tax_year')}, and want to do an alternative calculation for year of marriage.",
+                            f"You got married during {answers.get('Tax_Year')}, were unmarried as of January 1st, {answers.get('Tax_Year')}, and want to do an alternative calculation for year of marriage.",
                             f"{Pronouns} are self employed and want to deduct health insurance premiums."]
-        if  "1095-A" in health_forms:
+        if  "1095-A" in Health_Forms:
             ask_question(answers, "1095-A_Warning", "Please check any that apply.", 
                         input_type="checkbox",
                         options=health_1095_a
@@ -205,7 +218,7 @@ def CaResidency():
     with st.expander("Residency Questions", expanded=False):        
         ask_question(
             answers,
-            "renter_status",
+            "Renter_Status",
             f"Last year, did {pronouns} rent in California for at least 6 months or more?",
             input_type="radio",
             options=typical_basic_response,
@@ -227,9 +240,9 @@ def CaResidency():
            st.warning(f"⚠️ {Pronouns} may be required to fill out another state return of which, this site will not be able to assist {pronouns} in filing state taxes other than California.")
 
 def MiscQuestions():
-    global answers
+    global answers, pronouns, pronouns2_spouse
     global typical_basic_response
-    with st.expander("Miscallenous Questions", expanded=False):        
+    with st.expander("Miscellaneous Questions", expanded=False):        
         ask_question(
             answers,
             "IHSS",
@@ -247,6 +260,13 @@ def MiscQuestions():
                 options=typical_basic_response,
                 columns=False
             )
+        if answers.get("IHSS_live_with_anyone") ==  "Yes":
+            ask_question(
+                answers,
+                "IHSS_Lived_With_Who",
+                f"For IHSS, who did {pronouns} live with throughout {answers.get('Tax_Year')}?",
+                input_type="text"
+            )
         ask_question(
             answers,
             "IPPIN",
@@ -254,27 +274,49 @@ def MiscQuestions():
             input_type="radio",
             options=typical_basic_response,
             columns=False,
-            help_text=f"An IPPIN is a six-digit number the IRS issues to taxpayers to help prevent someone else from filing a fraudulent tax return using {pronouns} Social Security number."
+            help_text=f"An IPPIN is a six-digit number the IRS issues to taxpayers to help prevent someone else from filing a fraudulent tax return using {pronouns2} Social Security number."
         )
+        if answers.get('PII') == consent_options[1] and answers.get("IPPIN") ==  "Yes":
+            st.warning("⚠️ Please have documentation ready.")
+        if answers.get('PII') == consent_options[0] and answers.get("IPPIN") ==  "Yes":
+            ask_question(
+                answers,
+                "IPPIN_Number_Self",
+                f"If you have an IPPIN, enter it here:",
+                input_type='text',
+                columns=False
+            )
+            if answers.get("Filing_Status")=="Married Filing Jointly":
+                ask_question(
+                    answers,
+                    "IPPIN_Number_Spouse",
+                    f"If {pronouns2_spouse} has an IPPIN, enter it here:",
+                    input_type='text',
+                    columns=False
+                )
+
+
+
         if answers.get("IPPIN") ==  "No" or answers.get("IPPIN") ==  "Unsure":
             st.warning(f"⚠️ A missing an IPPIN is the number reason why the IRS rejects a return, if {pronouns} have one {pronouns} must include or the IRS will not accept your tax return.")
         answers["EstimatedTaxPayments"] = []
         ask_question(
             answers,
             "EstimatedTaxPayments",
-            f"Did {pronouns} make any estimated tax payments throughout {answers.get('tax_year')}?",
+            f"Did {pronouns} make any estimated tax payments throughout {answers.get('Tax_Year')}?",
             input_type="radio",
             options=typical_basic_response,
             columns=False,
-            help_text=f"Estimated tax payments are periodic payments {pronouns} make to the government during the year on income that isn’t automatically taxed through withholding, such as self employment."
+            help_text=f"Estimated tax payments are periodic payments {pronouns} make to the government during the year on income that aren't automatically taxed through withholding, such as self employment."
         )
         if answers.get("EstimatedTaxPayments") == "Yes":
-            tax_year = answers.get("tax_year")
+            tax_data = answers.get("EstimatedTax", {})
+            Tax_Year = answers.get("Tax_Year")
             quarters = [
-                (f"Q1 - April 15, {tax_year}", f"Q1_{tax_year}"),
-                (f"Q2- June 15, {tax_year}", f"Q2_{tax_year}"),
-                (f"Q3 - September 15, {tax_year}", f"Q3_{tax_year}"),
-                (f"Q4 - January 15, {tax_year+1}", f"Q4_{tax_year+1}")
+                (f"Q1 - April 15, {Tax_Year}", f"Q1_{Tax_Year}"),
+                (f"Q2- June 15, {Tax_Year}", f"Q2_{Tax_Year}"),
+                (f"Q3 - September 15, {Tax_Year}", f"Q3_{Tax_Year}"),
+                (f"Q4 - January 15, {Tax_Year+1}", f"Q4_{Tax_Year+1}")
             ]
             answers.setdefault("EstimatedTax", {})
             for label, key in quarters:
@@ -296,9 +338,10 @@ def MiscQuestions():
                     )
 
 
+
 def Income():
     global answers, typical_basic_response, pronouns
-    st.warning("🔵 Rental income is out of scope.")
+    st.warning("⚠️ Rental income, amongst other types of income are out of scope.")
  #   st.write("This section screens for uncommon, out-of-scope scenarios and helps prepare for the intake interview.")
 #    st.write("Common items like W-2s, dividends, and interest are generally in scope.")
     #with st.expander("Wages, Dividends, Interest, Gambling Winnings, Certain Government Benefits, and Cancellation of Debt \n\n W-2, 1099-Div, 1099-Int, W-2G, 1099-G, 1099-C ", expanded=False):
@@ -484,19 +527,19 @@ def F1099R():
                         ask_question(
                             answers,
                             "code_1_use",
-                            "What were the distribution funds used for?",
+                            "What were the distribution funds used for? (Living expenses, rent, down payment on a home, education. etc.)",
                             input_type="text"
                         )
                     if answers.get("code_1") == "No" or answers.get("code_1") == "Yes":
                         ask_question(
                             answers,
-                            "bad_codes",
+                            "1099_R_Bad_Codes",
                             f"Do any of {pronouns2} 1099-R forms have any of these codes in box 7: 5, 8, 9, A, E, J, K, N, P, R, T, U?",
                             input_type="radio",
                             options=typical_basic_response,
                             columns=False
                         )
-                        if answers.get("bad_codes") == "Yes":
+                        if answers.get("1099_R_Bad_Codes") == "Yes":
                             st.warning("❌ Out of Scope")
                             return
                         ask_question(
@@ -598,7 +641,8 @@ def SSA():
             f"Does {pronouns2} Social Security form include payments for prior years (lump-sum payments)?",
             input_type="radio",
             options=["Yes","No"],
-            columns=False
+            columns=False,
+            help_text='A Social Security lump-sum payment is a one-time check issued for back benefits (common in disability cases) or a voluntary 6-month retroactive payment for those who delay claiming past full retirement age. \n\n It says clearly on the bottom left "payments received from a prior year."'
         )
         if answers.get("ssa_prior_year") is None:
             return
@@ -625,8 +669,8 @@ def SSA():
         for i in range(int(num_years)):
             st.markdown(f"### 📅 Prior Year #{i+1}")
             year_data = {}
-            year_data["tax_year"] = st.text_input(f"Tax Year (Year #{i+1})", key=f"SSA_Lump_Sum_year_{i}")
-            year_data["filing_status"] = st.selectbox(
+            year_data["Tax_Year"] = st.text_input(f"Tax Year (Year #{i+1})", key=f"SSA_Lump_Sum_year_{i}")
+            year_data["Filing_Status"] = st.selectbox(
                 f"Filing Status for that year",
                 ["Single", "Married Filing Jointly", "Married Filing Separately", "Head of Household"],
                 key=f"SSA_Lump_Sum_status_{i}"
@@ -697,8 +741,8 @@ def SchC():
         2025: 0.70,
         2026: 0.725
     }
-    tax_year = int(answers.get("tax_year"))
-    standard_mileage_rate = standard_mileage_rates.get(tax_year)
+    Tax_Year = int(answers.get("Tax_Year"))
+    standard_mileage_rate = standard_mileage_rates.get(Tax_Year)
     with st.expander("Self Employment: Schedule C", expanded=False):
         ask_question(
             answers,
@@ -873,7 +917,7 @@ def SchD():
         ask_question(
             answers,
             "Sell_Home",
-            f"Do {(pronouns)} sell a home in {answers.get('tax_year')}?",
+            f"Do {(pronouns)} sell a home in {answers.get('Tax_Year')}?",
             input_type="radio",
             options=yes_no
         )  
@@ -932,22 +976,32 @@ def SchD():
 
 def Deductions():
     global answers, yes_no, typical_basic_response
-    if answers.get('tax_year')>=2025:
+    with st.expander("Student Loan Interest: 1098-E", expanded=False):
+        ask_question(
+            answers,
+            key_name="Student_Loan_Interest",
+            question=f"Did {pronouns} pay any student loan interest?",
+            input_type="radio",
+            options=typical_basic_response
+        )
+        if answers.get('Student_Loan_Interest') == "Yes":
+             st.warning(f"✅ In scope, lease have {pronouns2} 1098-E forms handy.")
+    if answers.get('Tax_Year')>=2025:
         with st.expander("No Tax on Tip", expanded=False):
             ask_question(
                     answers,
-                    key_name="no_tax_on_tip",
+                    key_name="No_Tax_On_Tip",
                     question=f"Did {pronouns} have tips not reported on W-2s or 1099-s?",
                     input_type="radio",
                     options=typical_basic_response,
                     help_text="W-2 box 7 is tips and may be tax deductible."
                 )
-            if answers.get('no_tax_on_tip') == "Yes":
-                answers["no_tax_on_tip_amount"] = st.number_input(
-                    f"How much did {pronouns} receive in tips not already reported? ($)",
+            if answers.get('No_Tax_On_Tip') == "Yes":
+                answers["No_Tax_On_Tip_amount"] = st.number_input(
+                    f"How much did {pronouns} receive in tips not already reported on W-2s or 1099-s? ($)",
                     min_value=0,
                     step=100,
-                    key="no_tax_on_tip_amount"
+                    key="No_Tax_On_Tip_amount"
                 )
         with st.expander("No Tax on Overtime", expanded=False):
             ask_question(
@@ -981,16 +1035,6 @@ def Deductions():
                     key="no_tax_on_car_interest_amount"
                 )
 
-    with st.expander("Student Loan Interest: 1098-E", expanded=False):
-        ask_question(
-            answers,
-            key_name="student_loan_interest",
-            question=f"Did {pronouns} pay any student loan interest?",
-            input_type="radio",
-            options=typical_basic_response
-        )
-        if answers.get('student_loan_interest') == "Yes":
-             st.warning(f"✅ In scope, lease have {pronouns2} 1098-E forms handy.")
     with st.expander("Qualified Educator", expanded=False):
         ask_question(
                 answers,
@@ -1065,7 +1109,7 @@ def Deductions():
         if answers.get('itemize_question') == "Yes":
             ask_question(
                 answers,
-                key_name="last_years_filing_status",
+                key_name="last_years_Filing_Status",
                 question=f"What was {pronouns2} filing status last tax year?",
                 input_type="radio",
                 options=filings_statuses2,columns=False
@@ -1170,12 +1214,12 @@ def CDCC():
 
     with st.expander("Child & Dependent Care Credit (2441)", expanded=False):
 
-        ask_question(answers, "child_care_expenses",
+        ask_question(answers, "Child_Care_Expenses",
             f"Do {pronouns2} have child care expenses for children under 13?",
             input_type="radio",
             options=yes_no
         )  
-        if answers.get('child_care_expenses') == 'Yes':
+        if answers.get('Child_Care_Expenses') == 'Yes':
 
             # =========================
             # BACKGROUND (GLOBAL ONCE)
@@ -1186,9 +1230,9 @@ def CDCC():
 
             cdcc_background["tax_zero"] = st.radio(
                 "Is your taxable income or tax liability $0?",
-                options=yes_no,
+                options=typical_basic_response,
                 index=None,
-                key="CDCC_tax_zero"
+                key="CDCC_tax_zero",help="The child and dependent care credit is a non-refundable credit. \n\n So if your taxable income is already $0, there is no benefit for filing for this credit."
             )
 
             cdcc_background["employer_benefits"] = st.radio(
@@ -1214,7 +1258,7 @@ def CDCC():
                     key="CDCC_months_you"
                 )
 
-                if answers.get("filing_status") == "Married Filing Jointly":
+                if answers.get("Filing_Status") == "Married Filing Jointly":
                     cdcc_background["months_spouse"] = st.number_input(
                         "Months SPOUSE unable to work",
                         min_value=0,
@@ -1227,7 +1271,6 @@ def CDCC():
             # CHILD LOOP (LIKE SCHEDULE C BUSINESSES)
             # =========================
             st.subheader("Child Information")
-
             num_children = st.number_input(
                 "How many qualifying children? (Max 5)",
                 min_value=1,
@@ -1235,64 +1278,70 @@ def CDCC():
                 step=1,
                 key="CDCC_num_children"
             )
-
-            answers["CDCC_children"] = []
-
-            tax_year = int(answers.get("tax_year"))
-            ref_date = date(tax_year, 12, 31)
+            answers["CDCC_Children"] = []
+            Tax_Year = int(answers.get("Tax_Year"))
+            ref_date = date(Tax_Year, 12, 31)
 
             for i in range(int(num_children)):
-                st.markdown(f"### 👶 Child #{i+1}")
-
                 child_data = {}
 
                 # ---------------- CHILD INFO ----------------
-                child_data["name"] = st.text_input(
+                child_data["Name"] = st.text_input(
                     "Child’s Name",
                     key=f"CDCC_child_name_{i}"
                 )
 
-                child_data["birthday"] = st.date_input(
+                child_data["Birthday"] = st.date_input(
                     "Child’s Birthday",
                     key=f"CDCC_child_birthday_{i}"
                 )
-
                 # AGE CALC
-                if child_data["birthday"]:
-                    child_data["age"] = (
+                if child_data["Birthday"]:
+                    child_data["Age"] = (
                         ref_date.year
-                        - child_data["birthday"].year
+                        - child_data["Birthday"].year
                         - ((ref_date.month, ref_date.day) <
-                        (child_data["birthday"].month, child_data["birthday"].day))
+                        (child_data["Birthday"].month, child_data["Birthday"].day))
                     )
                 else:
-                    child_data["age"] = None
+                    child_data["Age"] = None
 
-                st.write(f"Age as of {tax_year}: **{child_data['age']}**")
+                st.write(f"Age as of December 31, {Tax_Year}: **{child_data['Age']}**")
 
                 # =========================
                 # PROVIDER INFO (INSIDE LOOP)
                 # =========================
-                child_data["provider_id_type"] = st.radio(
+                child_data["Provider_ID_Type"] = st.radio(
                     "Provider ID Type",
                     options=["EIN", "SSN"],
                     index=None,
-                    key=f"CDCC_provider_id_type_{i}"
+                    key=f"Provider_ID_Type{i}"
                 )
-                st.warning("Please have your provider's information handy.")
-
-                child_data["provider_name"] = st.text_input(
+                if answers.get('PII') == consent_options[1]:
+                    st.warning("Please have your provider's information handy.")
+                if answers.get('PII') == consent_options[0]:
+                    if st.session_state.get(f"Provider_ID_Type{i}")=="EIN":
+                        child_data["Provider_EIN"] = st.text_input(
+                            "Provider EIN",
+                            key=f"CDCC_provider_EIN_{i}"
+                        )
+                    if st.session_state.get(f"Provider_ID_Type{i}")=="SSN":
+                        child_data["Provider_SSN"] = st.text_input(
+                            "Provider SSN",
+                            key=f"CDCC_provider_SSN_{i}"
+                        )
+                child_data["Provider_Name"] = st.text_input(
                     "Provider Name",
                     key=f"CDCC_provider_name_{i}"
                 )
 
-                child_data["provider_address"] = st.text_area(
+                child_data["Provider_Address"] = st.text_area(
                     "Provider Address",
                     key=f"CDCC_provider_address_{i}"
                 )
 
-                child_data["provider_phone"] = st.text_input(
-                    "Provider Phone",
+                child_data["Provider_Phone_Number"] = st.text_input(
+                    "Provider Phone Number",
                     key=f"CDCC_provider_phone_{i}"
                 )
 
@@ -1300,7 +1349,6 @@ def CDCC():
 
                 if st.checkbox("The provider is tax exempt", key=f"CDCC_flag_exempt_{i}"):
                     child_data["provider_flags"].append("Tax Exempt")
-
                 if st.checkbox("The provider is my household employee", key=f"CDCC_flag_household_{i}"):
                     child_data["provider_flags"].append("Household Employee")
 
@@ -1308,21 +1356,21 @@ def CDCC():
                     child_data["provider_flags"].append("Foreign Provider")
 
                 child_data["amount_paid"] = st.number_input(
-                    f"Amount Paid ({tax_year})",
+                    f"Amount Paid in ({Tax_Year}) ($)",
                     min_value=0,
                     step=100,
                     key=f"CDCC_amount_paid_{i}"
                 )
 
                 # ---------------- APPEND LIKE SCHC ----------------
-                answers["CDCC_children"].append(child_data)
+                answers["CDCC_Children"].append(child_data)
 
             # =========================
             # STORE FINAL STRUCTURE
             # =========================
             answers["CDCC_details"] = {
                 "background": cdcc_background,
-                "children": answers["CDCC_children"]
+                "children": answers["CDCC_Children"]
             }
 
 
@@ -1337,12 +1385,12 @@ def CDCC():
 def EducationCredits():
     global answers, yes_no, pronouns2, typical_basic_response
     with st.expander("Education Credits (1098-T)", expanded=False):
-        ask_question(answers, "educational_expenses",
+        ask_question(answers, "Educational_Expenses",
             f"Do you, your spouse, or any of your dependents have any educational expenses?",
             input_type="radio",
             options=yes_no
         )  
-        if answers.get('educational_expenses') == 'Yes':
+        if answers.get('Educational_Expenses') == 'Yes':
             # =========================
             # STUDENT LOOP
             # =========================
@@ -1356,54 +1404,54 @@ def EducationCredits():
                 help="Only include students you are claiming."
             )
             answers["EDU_students"] = []
-            tax_year = int(answers.get("tax_year"))
+            Tax_Year = int(answers.get("Tax_Year"))
             for i in range(int(num_students)):
                 st.markdown(f"### 🎓 Student #{i+1}")
                 student = {}
-                student["name"] = st.text_input(
+                student["Name"] = st.text_input(
                     "Student Name",
                     key=f"EDU_name_{i}"
                 )
-                student["relationship"] = st.text_input(
+                student["Relationship"] = st.text_input(
                     "Relationship to You",
                     key=f"EDU_relationship_{i}",help="Examples: Self, Daughter, Son"
                 )
-                student["age"] = st.number_input(
-                    f"Age of student as of December 31, {tax_year}",
+                student["Age"] = st.number_input(
+                    f"Age of student as of December 31, {Tax_Year}",
                     min_value=18,
                     step=1,
                     key=f"EDU_age_{i}"
                 )
                 # ---------------- STATUS ----------------
-                student["enrollment_status"] = st.radio(
+                student["Enrollment_Status"] = st.radio(
                     "Student Status (Enrollment)",
                     ["Below Part Time", "Part Time", "Full Time"],
                     index=None,
                     key=f"EDU_enrollment_{i}"
                 )
-                student["level"] = st.radio(
+                student["Level"] = st.radio(
                     "Student Level",
                     ["Graduate", "Undergraduate", "Neither"],
                     index=None,
                     key=f"EDU_level_{i}"
                 )
-                student["years_post_secondary"] = st.number_input(
-                    f"How many years of Post-Secondary school has the student completed as of December 31, {tax_year}",
+                student["Years_Post_Secondary"] = st.number_input(
+                    f"How many years of Post-Secondary school has the student completed as of December 31, {Tax_Year}",
                     min_value=0,
                     step=1,
                     key=f"EDU_years_{i}"
                 )
-                student["felony_drug"] = st.radio(
+                student["Felony_Drug"] = st.radio(
                     "Does the student have a felony drug conviction?",
                     yes_no,
                     index=None,
                     key=f"EDU_felony_{i}"
                 )
-                student["aotc_4_years"] = st.radio(
+                student["AOTC"] = st.radio(
                     "Has the student claimed American Opportunity Tax Credit (AOTC) for more than 4 years?",
                     yes_no,
                     index=None,
-                    key=f"EDU_aotc_{i}"
+                    key=f"AOTC{i}"
                 )
                 student["box4_or_6"] = st.radio(
                     "Are there any amounts in Box 4 or Box 6?",
@@ -1414,35 +1462,41 @@ def EducationCredits():
                 if student.get('box4_or_6')=="Yes":
                     st.warning("❌ Out of scope: requires adjustments of prior tax years.")
                     return
-                student["payments_box1"] = st.number_input(
+                student["Payments_Box1"] = st.number_input(
                     "Payments Received (Box 1)  ($)",
                     min_value=0,
                     step=100,
                     key=f"EDU_box1_{i}"
                 )
-                student["scholarships_box5"] = st.number_input(
+                student["Scholarships_Box5"] = st.number_input(
                     "Scholarships or Grants (Box 5)  ($)",
                     min_value=0,
                     step=100,
                     key=f"EDU_box5_{i}"
                 )
-                student["additional_qualified_edu_expenses_amount"] = st.number_input(
+                student["Additional_Qualified_Expenses"] = st.number_input(
                     "Additional qualified educational expenses ($)",
                     key=f"EDU_expenses_{i}",min_value=0
                 )
-                st.warning("📚 Qualified educational expenses includes tuition, fees, books, and supplies, required for school. \n\n Do not include expenses like rent or living expenses.")
+                st.warning("📚 Qualified educational expenses includes tuition, fees, books, and supplies, required for school.\n\n⚠️ Do not include expenses like rent or living expenses.")
                 # ---------------- CALCULATION ----------------
                 qee = (
-                    student["payments_box1"]
-                    + student["additional_qualified_edu_expenses_amount"]
-                    - student["scholarships_box5"]
+                    student["Payments_Box1"]
+                    + student["Additional_Qualified_Expenses"]
+                    - student["Scholarships_Box5"]
                 )
-                student["qualified_expenses"] = qee
+                student["Qualified_Educational_Expenses"] = qee
+                if student["Qualified_Educational_Expenses"] <= 0:
+                    student["Education_Credit"]="No Education Credit"
+                elif student["Enrollment_Status"] != "Below Part Time" and student["Years_Post_Secondary"]<=4 and student["Felony_Drug"]=="No" and student["AOTC"]=="No":
+                    student["Education_Credit"]="American Opportunity Credit"
+                else:
+                    student["Education_Credit"]="Life Time Learning"
                 st.write(f"### Calculated Qualified Expenses: $**{qee}**")
                 if qee > 0:
                     st.success("📚 Eligible qualified education expenses")
                 elif qee < 0:
-                    st.warning("Possible taxable scholarship income")
+                    st.warning("⚠️ Possible taxable scholarship income")
                 else:
                     st.warning("No net qualified expenses")
                 # ---------------- APPEND ----------------
@@ -1474,16 +1528,28 @@ def RefundAndPayment():
             options=["Direct Deposit (Bank)","CFR Card"],
             help_text="A CFR Card is a prepaid debit card that is mailed to you."
         )
-        if answers.get('refund_method') == 'CFR Card':
-            st.warning("🔵 Please have your e-mail, phone number, and address ready for the volunteer.")
-        ask_question(answers, "payment_method",
+ #       if answers.get('refund_method') == 'CFR Card':
+#            st.warning("🔵 Please have your e-mail, phone number, and address ready for the volunteer.")
+        ask_question(answers, "Payment_Method",
             f"If {pronouns} have a balance due, how do {pronouns} want to pay it?",
             input_type="radio",
             options=["Direct Debit (Bank)","Setup installment plan","Mail Payment","Unsure"]
         )  
-        if answers.get('payment_method') == 'Direct Debit (Bank)' or  answers.get('refund_method') == "Direct Deposit (Bank)":
+        if (answers.get('Payment_Method') == 'Direct Debit (Bank)' or  answers.get('refund_method') == "Direct Deposit (Bank)"):
+            ask_question(answers,"Voided_Check_Provided","To get banking information, I will provide a voided check.",input_type="radio",options=yes_no)
+        if answers.get('PII') == consent_options[1] and (answers.get('payment_method') == 'Direct Debit (Bank)' or  answers.get('refund_method') == "Direct Deposit (Bank)"):
             st.warning("🔵 Please have bank information ready for the volunteer.")
-
+        if answers.get('PII') == consent_options[0] and (answers.get('payment_method') == 'Direct Debit (Bank)' or  answers.get('refund_method') == "Direct Deposit (Bank)"):
+            ask_question(answers,"Bank_Name","Bank Name",input_type="text",)
+            ask_question(answers,"Routing_Number","Routing Number",input_type="text",)
+            ask_question(answers,"Account_Number","Account Number",input_type="text",)
+        if (answers.get('Payment_Method') == 'Direct Debit (Bank)'):
+            ask_question(answers,"Payment_Date_Requested","I want to set a date for any amount to be withdrawn.",input_type="radio",options=yes_no,help_text="\n\n A volunteer will confirm the date and any amount owed before having you sign your tax return.")
+        if (answers.get('Payment_Date_Requested') == 'Yes'):
+             answers['Payment_Date'] = st.date_input(
+                "Date I want any amount owed to be withdrawn.",help="Paying as much before April 15th is advised to avoid late fees, interest, and penalties."
+            )
+ 
 def FinalNotes():
     with st.expander("Final Notes", expanded=False):
             answers["final_notes"] = st.text_area(

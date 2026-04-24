@@ -14,7 +14,8 @@ st.title("VITA Supplemental Questionnaire v1")
 from BasicInfo import MiscQuestions, answers, CaResidency, HealthInsurance, BasicInfo
 from BasicInfo import Disclaimers, Income, RequiredDocuments,F1099R,SSA, OtherIncome
 from BasicInfo import SchC, SchD, Deductions, CDCC, EducationCredits, RefundAndPayment, FinalDisclaimer, FinalNotes
-from Function import ask_question, generate_pdf
+from Function import ask_question
+from pdf import generate_pdf
 
 Disclaimers()
 RequiredDocuments()
