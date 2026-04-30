@@ -77,6 +77,13 @@ def generate_pdf(answers_dict):
             pdf.set_font("Arial", "B", 11)
             pdf.cell(0, 7, f"Health Insurance", ln=True)
             pdf.set_font("Arial", "", 11)
+        if isinstance(value, list):
+            pdf.set_font("Arial", "", 11)
+            pdf.cell(0, 6, f"{key.replace('_',' ').title()}:", ln=True)
+            for item in value:
+                pdf.multi_cell(0, 6, f"[X] {item}")
+            pdf.ln(2)
+            continue
         if key=="Renter_Status":
             pdf.set_font("Arial", "B", 11)
             pdf.cell(0, 7, f"Renter Status", ln=True)
@@ -97,8 +104,10 @@ def generate_pdf(answers_dict):
         # =========================
         # ESTIMATED TAX
         # =========================
+        tax_year = answers_dict.get("taxyear", "2025")
+
         if key.lower() == "estimatedtax" and isinstance(value, dict):
-            pdf.set_font("Arial", "B", 12)
+            pdf.set_font("Arial", "B", 11)
             pdf.cell(0, 8, "Estimated Tax Payments", ln=True)
             pdf.set_font("Arial", "", 11)
 
@@ -107,8 +116,8 @@ def generate_pdf(answers_dict):
 
             def get_vals(q):
                 return (
-                    value.get(f"{q}_2025_FD", 0),
-                    value.get(f"{q}_2025_CA", 0)
+                    value.get(f"{q}_{tax_year}_FD", 0),
+                    value.get(f"{q}_{tax_year}_CA", 0)
                 )
 
             for i in range(0, 4, 2):
@@ -121,25 +130,22 @@ def generate_pdf(answers_dict):
                 fd2, ca2 = get_vals(q2)
 
                 pdf.multi_cell(col_width, 6,
-                    f"{q1} 2025\nFederal: {fd1}\nCA: {ca1}",
+                    f"{q1} {tax_year}\nFederal: {fd1}\nCA: {ca1}",
                     border=1
                 )
 
                 pdf.set_xy(x + col_width, y)
 
                 pdf.multi_cell(col_width, 6,
-                    f"{q2} 2025\nFederal: {fd2}\nCA: {ca2}",
+                    f"{q2} {tax_year}\nFederal: {fd2}\nCA: {ca2}",
                     border=1
                 )
-
                 pdf.ln(2)
-
             continue
         # =========================
         # SCHEDULE C DETAILS
         # =========================
         if key == "schedule_c_details" and isinstance(value, list):
-
             expense_order = [
                 "advertising","office_expenses","contract_labor",
                 "pension_and_profit_sharing","commission_and_fees",
@@ -149,24 +155,19 @@ def generate_pdf(answers_dict):
                 "mortgage_interest","meals_and_entertainment","other_interest",
                 "utilities","legal_and_professional_services","wages"
             ]
-
             def labelize(k):
                 return k.replace("_", " ").title()
-
             col_w = (pdf.w - pdf.l_margin - pdf.r_margin) / 4
             row_h = 7
-
             for i, biz in enumerate(value):
                 pdf.add_page() 
                 pdf.set_font("Arial", "B", 11)
                 pdf.cell(0, 7, f"Business #{i+1}", ln=True)
                 pdf.ln(1)
-
                 # Income
-                pdf.set_font("Arial", "B", 10)
+                pdf.set_font("Arial", "B", 11)
                 pdf.cell(0, 6, "Income", ln=True)
-                pdf.set_font("Arial", "", 9)
-
+                pdf.set_font("Arial", "", 11)
                 income_fields = [
                     "1099_nec_amounts",
                     "1099_k_amounts",
@@ -175,25 +176,19 @@ def generate_pdf(answers_dict):
                     "business_type",
                     "other_business"
                 ]
-
                 for k in income_fields:
                     if k in biz:
                         v = clean(biz.get(k))
                         pdf.cell(70, 6, f"{labelize(k)}:", border=0)
                         pdf.cell(0, 6, v, ln=True)
-
                 pdf.ln(2)
-
                 # Expense table
                 pdf.set_font("Arial", "B", 9)
                 headers = ["Expense", "Amount", "Expense", "Amount"]
-
                 for h in headers:
                     pdf.cell(col_w, row_h, h, border=1, align="C")
                 pdf.ln()
-
                 pdf.set_font("Arial", "", 9)
-
                 ordered = [(k, clean(biz.get(k, 0))) for k in expense_order if k in biz]
 
                 odd, even = [], []
@@ -240,9 +235,7 @@ def generate_pdf(answers_dict):
             continue
         if key == "ssa_lump_sum_details" and isinstance(value, list):
             years = value or []
-#            print(value)
             ty=(value[0].get("Tax_Year"))
-            print(ty)
             if ty =='':
                 continue
             if years and ty != '':
@@ -284,15 +277,6 @@ def generate_pdf(answers_dict):
 
                     pdf.ln(3)
                 continue
-
-
-
-
-
-
-
-
-
         # =========================
         # CDCC
         # =========================
@@ -377,41 +361,21 @@ def generate_pdf(answers_dict):
                     pdf.ln(3)
             pdf.add_page()
             continue
-        if key=="irs_refund":
+        if key=="IRS_Refund":
             pdf.set_font("Arial", "B", 11)
             pdf.cell(0, 7, f"Refund Method and Payment", ln=True)
             pdf.set_font("Arial", "", 11)
 
 
 
-        # =========================
-        # DEFAULT
-        # =========================
- #       print("Default:")
- #       print(value)
         # 1. None first
         if value is None:
-            pdf.cell(70, 6, f"{key.replace('_',' ').title()}:", border=0)
+            pdf.cell(70, 6, f"{key.replace('_',' ')}:", border=0)
             pdf.cell(0, 6, "Not answered", ln=True)
             continue
-        def checkbox(v):
-            return "[X]" if v else "[ ]"
-        if isinstance(value, list):
-            pdf.set_font("Arial", "", 10)
-            pdf.cell(0, 6, f"{key.replace('_',' ').title()}:", ln=True)
-            for item in value:
-                pdf.cell(0, 6, f"[X] {item}", ln=True)
-            pdf.ln(2)
-            continue
         if not isinstance(value, dict):
-            pdf.cell(70, 6, f"{key.replace('_',' ').title()}:", border=0)
-            pdf.cell(0, 6, clean(value), ln=True)
-
-#        if not isinstance(value, (dict, list)):
-#            print(value)
- #           pdf.cell(70, 6, f"{key.replace('_',' ').title()}:", border=0)
-  #          pdf.cell(0, 6, clean(value), ln=True)
-
+            pdf.cell(70, 6, f"{key.replace('_',' ')}:", border=0)
+            pdf.multi_cell(0, 6, clean(value))
     # =========================
     # IMPORTANT: STREAMLIT SAFE OUTPUT
     # =========================

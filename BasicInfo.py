@@ -230,7 +230,7 @@ def CaResidency():
                     "Unsure"]
         ask_question(
             answers,
-            "ca_residency",
+            "CA_Residency",
             f"Which of the following best describes {pronouns2} living situation last year?",
             input_type="radio",
             options=ca_residency,
@@ -298,7 +298,7 @@ def MiscQuestions():
 
 
         if answers.get("IPPIN") ==  "No" or answers.get("IPPIN") ==  "Unsure":
-            st.warning(f"⚠️ A missing an IPPIN is the number reason why the IRS rejects a return, if {pronouns} have one {pronouns} must include or the IRS will not accept your tax return.")
+            st.warning(f"⚠️ A missing an IPPIN is the number one reason why the IRS rejects a return, if {pronouns} have one {pronouns} must include or the IRS will not accept your tax return.")
         answers["EstimatedTaxPayments"] = []
         ask_question(
             answers,
@@ -626,13 +626,13 @@ def SSA():
         # Step 1: Do they have SSA at all?
         ask_question(
             answers,
-            "has_ssa",
+            "Has_SSA",
             f"Did {pronouns} receive any Social Security benefits (SSA-1099)?",
             input_type="radio",
             options=yes_no,
             columns=False
         )
-        if answers.get("has_ssa") != "Yes":
+        if answers.get("Has_SSA") != "Yes":
             return
         # Step 2: Lump sum question
         ask_question(
@@ -718,15 +718,15 @@ def OtherIncome():
     with st.expander("Other Income", expanded=False):
         ask_question(
             answers,
-            "other_income",
+            "Other_Income",
             f"Do {pronouns} have any any other income?",
             input_type="radio",
             options=yes_no,
             columns=False
         )
-        if answers.get("other_income") == "Yes":
+        if answers.get("Other_Income") == "Yes":
             answers["other_income_explaination"] = st.text_area(
-                "Please briefly explain other income:",
+                "Please explain other income:",
                 key="other_income_explaination"
             )
 
@@ -746,13 +746,13 @@ def SchC():
     with st.expander("Self Employment: Schedule C", expanded=False):
         ask_question(
             answers,
-            "has_self_employent",
+            "Has_Self_Employent",
             f"Do {pronouns} have any 1099-Ks, 1099-MISCs, 1099-NECs, or cash income associated with self employment?",
             input_type="radio",
             options=yes_no,
             columns=False
         )
-        if answers.get("has_self_employent") != "Yes":
+        if answers.get("Has_Self_Employent") != "Yes":
             return
         st.warning("⚠️ Businesses with asset purchases over $2,500 or net losses are out of scope.")
         st.warning(f"⚠️ You not enter actual car expenses such as gas, tires, and maintanance, you may, however take the standard mileage rate at ${standard_mileage_rate:.2f} per mile.")
@@ -867,29 +867,29 @@ def SchD():
     with st.expander("Sale of Capital Assets: Schedule D", expanded=False):
         ask_question(
             answers,
-            key_name="sold_stocks_or_etfs",
+            key_name="Sold_Stocks_or_ETFs",
             question=f"Did {pronouns} sell stocks, mutual funds, or ETFs outside a retirement account?",
             input_type="radio",
             options=typical_basic_response
         )
         ask_question(
             answers,
-            key_name="transactions",
+            key_name="Transactions",
             question=f"Did {pronouns} have transactions involving options, futures, or commodities?",
             input_type="radio",
             options=typical_basic_response
         )
-        if answers.get('transactions') == "Yes":
+        if answers.get('Transactions') == "Yes":
             st.warning("❌ Out of scope.")
             return
         ask_question(
             answers,
-            key_name="crypto",
+            key_name="Crypto",
             question=f"Did {pronouns} sell any cyptocurrency assets or earn any cryptocurrency income (1099-DA)?",
             input_type="radio",
             options=typical_basic_response
         )
-        if answers.get('crypto') == "Yes":
+        if answers.get('Crypto') == "Yes":
                     st.warning("❌ Out of scope.")
                     return
         if answers.get('sold_stocks_or_etfs') == "Yes":
@@ -987,32 +987,32 @@ def Deductions():
         if answers.get('Student_Loan_Interest') == "Yes":
              st.warning(f"✅ In scope, lease have {pronouns2} 1098-E forms handy.")
     if answers.get('Tax_Year')>=2025:
-        with st.expander("No Tax on Tip", expanded=False):
+        with st.expander("No Tax on Tips", expanded=False):
             ask_question(
                     answers,
-                    key_name="No_Tax_On_Tip",
+                    key_name="No_Tax_on_Tips",
                     question=f"Did {pronouns} have tips not reported on W-2s or 1099-s?",
                     input_type="radio",
                     options=typical_basic_response,
                     help_text="W-2 box 7 is tips and may be tax deductible."
                 )
-            if answers.get('No_Tax_On_Tip') == "Yes":
+            if answers.get('No_Tax_on_Tips') == "Yes":
                 answers["No_Tax_On_Tip_amount"] = st.number_input(
                     f"How much did {pronouns} receive in tips not already reported on W-2s or 1099-s? ($)",
                     min_value=0,
                     step=100,
-                    key="No_Tax_On_Tip_amount"
+                    key="No_Tax_on_Tip_amount"
                 )
         with st.expander("No Tax on Overtime", expanded=False):
             ask_question(
                     answers,
-                    key_name="no_tax_on_overtime",
+                    key_name="No_Tax_on_Overtime",
                     question=f"Did {pronouns} have overtime not reported on your W-2s?",
                     input_type="radio",
                     options=typical_basic_response,
                     help_text="Typically 'OT' or similiar in box 14."
                 )
-            if answers.get('no_tax_on_overtime') == "Yes":
+            if answers.get('No_Tax_on_Overtime') == "Yes":
                 answers["no_tax_on_overtime_amount"] = st.number_input(
                     f"How much did {pronouns} receive in overtime not already reported? ($)",
                     min_value=0,
@@ -1022,12 +1022,12 @@ def Deductions():
         with st.expander("Car Loan Interest (1098-VLI)", expanded=False):
             ask_question(
                     answers,
-                    key_name="no_tax_on_car_interest",
+                    key_name="No_Tax_on_Car_Interest",
                     question=f"Did {pronouns} have qualified car loan interest?",
                     input_type="radio",
                     options=typical_basic_response
                 )
-            if answers.get('no_tax_on_car_interest') == "Yes":
+            if answers.get('No_Tax_on_Car_Interest') == "Yes":
                 answers["no_tax_on_car_interest_amount"] = st.number_input(
                     f"How much did {pronouns} pay in qualified car loan interest? ($)",
                     min_value=0,
@@ -1038,12 +1038,12 @@ def Deductions():
     with st.expander("Qualified Educator", expanded=False):
         ask_question(
                 answers,
-                key_name="qualified_educator",
+                key_name="Qualified_Educator",
                 question=f"Are {pronouns} a K-12 teacher, instructor, counselor, aide, or principal who worked at least 900 hours during the school year?",
                 input_type="radio",
                 options=typical_basic_response
             )
-        if answers.get('qualified_educator') == "Yes":
+        if answers.get('Qualified_Educator') == "Yes":
              answers["ssa_received"] = st.number_input(
                 f"How much did {pronouns} spend on out of pocket clasroom expenses? ($)",
                 min_value=0,
@@ -1083,12 +1083,12 @@ def Deductions():
     with st.expander("Itemized Deductions", expanded=False):
         ask_question(
                 answers,
-                key_name="cash_gifts",
+                key_name="Cash_Gifts",
                 question=f"Did {pronouns} have any cash gifts to charity?",
                 input_type="radio",
                 options=yes_no
             )
-        if answers.get('cash_gifts') == "Yes":
+        if answers.get('Cash_Gifts') == "Yes":
             ask_question(
                 answers,
                 key_name="cash_gift_amounts",
@@ -1098,7 +1098,7 @@ def Deductions():
             )
         ask_question(
                 answers,
-                key_name="itemize_question",
+                key_name="Itemize_Question",
                 question=f"Did {pronouns} want to take an itemized deduction?",
                 input_type="radio",
                 options=typical_basic_response,
@@ -1106,7 +1106,7 @@ def Deductions():
             )
         filings_statuses2 = ["Single", "Head of Houeshold", "Married Filing Jointly", "Married Filing Separately","Qualified Surviving Spouse"]
         sch_a_expensess=["Mortgage Interest","Real Estate Taxes","Cash Gifts to Charity","Non-Cash Gifts to Charity","DMV Tags","Medical Expenses","Gambling Losses","Other"]
-        if answers.get('itemize_question') == "Yes":
+        if answers.get('Itemize_Question') == "Yes":
             ask_question(
                 answers,
                 key_name="last_years_Filing_Status",
@@ -1116,8 +1116,8 @@ def Deductions():
             )
             ask_question(
                 answers,
-                key_name="itemized_expenses",
-                question=f"Which of the following expensesdo {pronouns2} have?",
+                key_name="Itemized_Expenses",
+                question=f"Which of the following expenses {pronouns2} have?",
                 input_type="checkbox",
                 options=sch_a_expensess,
                 columns=False
@@ -1512,17 +1512,17 @@ def RefundAndPayment():
     global answers
     with st.expander("Refund and Payment Method", expanded=False):
         ref=["I expected to owe","I expect to get a refund","I am unsure"]
-        ask_question(answers, "irs_refund",
+        ask_question(answers, "IRS_Refund",
             f"Do {pronouns} expect to owe or get a refund from the IRS?",
             input_type="radio",
             options=ref
         )  
-        ask_question(answers, "ca_refund",
+        ask_question(answers, "CA_Refund",
             f"Do {pronouns} expect to owe or get a refund from California?",
             input_type="radio",
             options=ref
         )  
-        ask_question(answers, "refund_method",
+        ask_question(answers, "Refund_Method",
             f"If {pronouns} are due a refund, how do {pronouns} want to receive it?",
             input_type="radio",
             options=["Direct Deposit (Bank)","CFR Card"],
@@ -1535,7 +1535,7 @@ def RefundAndPayment():
             input_type="radio",
             options=["Direct Debit (Bank)","Setup installment plan","Mail Payment","Unsure"]
         )  
-        if (answers.get('Payment_Method') == 'Direct Debit (Bank)' or  answers.get('refund_method') == "Direct Deposit (Bank)"):
+        if (answers.get('Payment_Method') == 'Direct Debit (Bank)' or  answers.get('Refund_Method') == "Direct Deposit (Bank)"):
             ask_question(answers,"Voided_Check_Provided","To get banking information, I will provide a voided check.",input_type="radio",options=yes_no)
         if answers.get('PII') == consent_options[1] and (answers.get('payment_method') == 'Direct Debit (Bank)' or  answers.get('refund_method') == "Direct Deposit (Bank)"):
             st.warning("🔵 Please have bank information ready for the volunteer.")
@@ -1552,8 +1552,8 @@ def RefundAndPayment():
  
 def FinalNotes():
     with st.expander("Final Notes", expanded=False):
-            answers["final_notes"] = st.text_area(
-                "Please write any other notes::",
+            answers["Final_Notes"] = st.text_area(
+                "Please writ edown any other notes here:",
                 key="final_notes"
             )
 
