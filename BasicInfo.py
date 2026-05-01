@@ -77,14 +77,6 @@ def BasicInfo():
             options=filings_statuses,
             columns=False
         )
-        ask_question(
-            answers,
-            "can_be_claimed_as_dependent",
-            "Can you or your spouse, if married, be claimed as a dependent?:",
-            input_type="radio",
-            options=typical_basic_response,
-            columns=False
-        )
         if answers.get('Filing_Status') == "Married Filing Jointly":
             pronouns='you or your spouse'
             Pronouns='you or your spouse'
@@ -162,6 +154,30 @@ def BasicInfo():
             if answers.get('MFS_HOH_S')=="No":
                 st.warning("✅ Your filing status is single.")
                 return
+        question1=["Can you be claimed as a dependent?"]
+        question2=["Can you or your spouse be claimed as a dependent?"]
+        if answers.get('filings_statuses') == "Married Filing Jointly":
+            question=question2
+        else:
+            question=question1
+
+        ask_question(
+            answers,
+            "Can_Be_Claimed_As_Dependent",
+            f"{question}",
+            input_type="radio",
+            options=typical_basic_response,
+            columns=False
+        )
+        ask_question(
+            answers,
+            "Have_Dependents",
+            f"Do {pronouns} have any dependents?",
+            input_type="radio",
+            options=typical_basic_response,
+            columns=False
+        )
+        
 
 
 
@@ -620,98 +636,136 @@ def F1099R():
 
 
 def SSA():
-    global pronouns, pronouns2
-    with st.expander("Social Security: SSA-1099", expanded=False):        
-        global answers, yes_no
-        # Step 1: Do they have SSA at all?
+    global pronouns, pronouns2, answers
+    
+    with st.expander("Social Security: SSA-1099", expanded=False):
+
+        global yes_no
+
+        # =========================
+        # BASE CHECK
+        # =========================
         ask_question(
             answers,
             "Has_SSA",
-            f"Did {pronouns} receive any Social Security benefits (SSA-1099)?",
+            f"Did {pronouns} receive SSA benefits?",
             input_type="radio",
             options=yes_no,
             columns=False
         )
+
         if answers.get("Has_SSA") != "Yes":
             return
-        # Step 2: Lump sum question
+
+        # =========================
+        # LUMP SUM CHECK
+        # =========================
         ask_question(
             answers,
             "ssa_prior_year",
-            f"Does {pronouns2} Social Security form include payments for prior years (lump-sum payments)?",
+            f"Does SSA include prior-year lump-sum payments?",
             input_type="radio",
-            options=["Yes","No"],
-            columns=False,
-            help_text='A Social Security lump-sum payment is a one-time check issued for back benefits (common in disability cases) or a voluntary 6-month retroactive payment for those who delay claiming past full retirement age. \n\n It says clearly on the bottom left "payments received from a prior year."'
+            options=["Yes", "No"],
+            columns=False
         )
-        if answers.get("ssa_prior_year") is None:
+
+        if answers.get("ssa_prior_year") != "Yes":
             return
-        if answers.get("ssa_prior_year") == "No":
-            return
-        if answers.get("ssa_prior_year") == "Yes":
-            st.warning(
-    f"⚠️ {Pronouns} must enter details for each prior-year Social Security lump-sum payment as reported on previous tax returns (Form 1040)."
-)
-        # ----------------------------
-        # Number of prior years
-        # ----------------------------
+
+        st.warning("⚠️ Enter each prior-year SSA entry separately.")
+
+        # =========================
+        # YEARS
+        # =========================
         num_years = st.number_input(
-            "How many prior years are included?",
+            "How many prior years?",
             min_value=1,
             max_value=5,
             step=1
         )
-        # Store all years data
-        answers["ssa_lump_sum_details"] = []
-        # ----------------------------
-        # Loop per year
-        # ----------------------------
+
+        # =========================
+        # LIST (Schedule C style)
+        # =========================
+        answers["SSA"] = []
+
         for i in range(int(num_years)):
-            st.markdown(f"### 📅 Prior Year #{i+1}")
-            year_data = {}
-            year_data["Tax_Year"] = st.text_input(f"Tax Year (Year #{i+1})", key=f"SSA_Lump_Sum_year_{i}")
-            year_data["Filing_Status"] = st.selectbox(
-                f"Filing Status for that year",
+            print("adding data")
+            st.markdown(f"## 📄 SSA Year {i+1}")
+
+            entry = {
+                "Type": "SSA_Lump_Sum",
+                "Year_Index": i + 1
+            }
+
+            entry["Tax_Year"] = st.text_input(
+                "Tax Year",
+                key=f"ssa_year_{i}"
+            ) or ""
+
+            entry["Filing_Status"] = st.selectbox(
+                "Filing Status",
                 ["Single", "Married Filing Jointly", "Married Filing Separately", "Head of Household"],
-                key=f"SSA_Lump_Sum_status_{i}"
+                key=f"ssa_status_{i}"
             )
-            year_data["ssa_received"] = st.number_input(
-                f"Total Social Security received that year ($)",
+
+            entry["Gross_SSA"] = st.number_input(
+                "Total SSA Received",
                 min_value=0,
                 step=100,
-                key=f"SSA_Lump_Sum_total_received_{i}"
+                key=f"ssa_gross_{i}"
             )
-            year_data["lump_sum_amount"] = st.number_input(
-                f"Portion of THIS year’s benefits for that year ($)",
+
+            entry["Lump_Sum"] = st.number_input(
+                "Lump Sum Portion",
                 min_value=0,
                 step=100,
-                key=f"SSA_Lump_Sum_portio_{i}"
+                key=f"ssa_lump_{i}"
             )
-            year_data["agi"] = st.number_input(
-                f"AGI for that year (Form 1040 Line 11) ($)",
+
+            entry["Taxable_SSA"] = st.number_input(
+                "Taxable SSA",
                 min_value=0,
                 step=100,
-                key=f"SSA_Lump_Sum_agi_{i}"
+                key=f"ssa_taxable_{i}"
             )
-            year_data["adjustments"] = st.number_input(
-                f"Adjustments/Exclusions (Form 1040 Line 10) ($)",
+
+            entry["AGI"] = st.number_input(
+                "AGI",
                 min_value=0,
                 step=100,
-                key=f"SSA_Lump_Sum_adjustments_{i}"
+                key=f"ssa_agi_{i}"
             )
-            year_data["tax_exempt_interest"] = st.number_input(
-                f"Tax-exempt interest (Form 1040 Line 2a) ($)",
+
+            entry["Adjustments"] = st.number_input(
+                "Adjustments",
                 min_value=0,
                 step=100,
-                key=f"interest_{i}"
+                key=f"ssa_adj_{i}"
             )
-            year_data["taxable_ssa"] = st.number_input(
-                f"Taxable Social Security (Form 1040 Line 6b) ($)",
+
+            entry["Tax_Exempt_Interest"] = st.number_input(
+                "Tax-Exempt Interest",
                 min_value=0,
                 step=100,
-                key=f"SSA_Lump_Sum_taxable_ssa_{i}"
+                key=f"ssa_interest_{i}"
             )
-            answers["ssa_lump_sum_details"].append(year_data)
+
+            # =========================
+            # CALC (like Schedule C net income)
+            # =========================
+            entry["Net_SSA"] = (
+                entry["Gross_SSA"]
+                + entry["Lump_Sum"]
+                - entry["Taxable_SSA"]
+            )
+            # =========================
+            # APPEND (same pattern as EDU + Schedule C)
+            # =========================
+            answers["SSA"].append(entry)
+        answers["SSA_Lump_Sum_Detail"] = {
+            "lump_sum_details": answers["SSA"]
+        }  
 
 def OtherIncome():
     global answers, yes_no, pronouns, pronouns2
@@ -730,9 +784,9 @@ def OtherIncome():
                 key="other_income_explaination"
             )
 
-    
 def SchC():
     global answers, yes_no, pronouns, pronouns2
+
     standard_mileage_rates = {
         2021: 0.56,
         2022: 0.585,
@@ -741,126 +795,125 @@ def SchC():
         2025: 0.70,
         2026: 0.725
     }
-    Tax_Year = int(answers.get("Tax_Year"))
-    standard_mileage_rate = standard_mileage_rates.get(Tax_Year)
+
+    Tax_Year = int(answers.get("Tax_Year", 2025))
+    standard_mileage_rate = standard_mileage_rates.get(Tax_Year, 0.70)
+
     with st.expander("Self Employment: Schedule C", expanded=False):
+
         ask_question(
             answers,
             "Has_Self_Employent",
-            f"Do {pronouns} have any 1099-Ks, 1099-MISCs, 1099-NECs, or cash income associated with self employment?",
+            f"Do {pronouns} have any 1099-Ks, 1099-MISCs, 1099-NECs, or cash income from self employment?",
             input_type="radio",
             options=yes_no,
             columns=False
         )
+
         if answers.get("Has_Self_Employent") != "Yes":
             return
-        st.warning("⚠️ Businesses with asset purchases over $2,500 or net losses are out of scope.")
-        st.warning(f"⚠️ You not enter actual car expenses such as gas, tires, and maintanance, you may, however take the standard mileage rate at ${standard_mileage_rate:.2f} per mile.")
-        
-        num_years = st.number_input(
+
+        st.warning("⚠️ Out of scope if asset purchases > $2,500 or net loss.")
+        st.warning(f"⚠️ Use standard mileage rate: ${standard_mileage_rate:.2f} per mile")
+
+        num_businesses = st.number_input(
             "How many self-employment businesses?",
             min_value=1,
             max_value=5,
-            step=1
+            step=1,
+            key="SCHC_num_businesses"
         )
 
-        # ALWAYS reset cleanly
-        answers["schedule_c_details"] = []
+        schedule_c_list = []
 
-        for i in range(int(num_years)):
-            ind=i+1
+        for i in range(int(num_businesses)):
+            print(i)
+#            print(num_businesses)
+            business = {}
+
             st.markdown(f"### 💼 Business #{i+1}")
 
-            year_data = {}
-
-            # ---------------- BASIC INFO ----------------
-            year_data["business_type"] = st.radio(
-                "Business Description",
-                ["Taxi & limousine service (Uber / Lyft)", "Other"],
+            # =========================
+            # INCOME
+            # =========================
+            business["business_type"] = st.radio(
+                "Business Type",
+                ["Taxi & limousine (Uber/Lyft)", "Other"],
                 index=None,
-                key=f"business_type_{i}"
+                key=f"schc_type_{i}"
             )
 
-            if year_data["business_type"] == "Other":
-                year_data["other_business"] = st.text_input(
-                    f"Describe {pronouns2} business:",
-                    key=f"SCH_C_other_business_{i}"
+            if business["business_type"] == "Other":
+                business["other_business"] = st.text_input(
+                    "Describe business",
+                    key=f"schc_other_{i}"
                 )
 
-            year_data["1099_nec_amounts"] = st.number_input("Number of 1099-NEC Forms", min_value=0, step=1, key=f"nec_{i}")
-            year_data["1099_k_amounts"] = st.number_input("Number of 1099-K Forms", min_value=0, step=1, key=f"k_{i}")
-            year_data["1099_misc_amounts"] = st.number_input("Number of 1099-MISC Forms", min_value=0, step=1, key=f"misc_{i}")
-            year_data["other_cash_income"] = st.number_input("Other Cash Income ($)", step=50, key=f"cash_{i}")
-            # ---------------- EXPENSES ----------------
+            business["1099_nec_amounts"] = st.number_input("1099-NEC count", min_value=0, step=1, key=f"nec_{i}")
+            business["1099_k_amounts"] = st.number_input("1099-K count", min_value=0, step=1, key=f"k_{i}")
+            business["1099_misc_amounts"] = st.number_input("1099-MISC count", min_value=0, step=1, key=f"misc_{i}")
+            business["other_cash_income"] = st.number_input("Other Cash Income", step=50, key=f"cash_{i}")
+
+            # =========================
+            # EXPENSES
+            # =========================
             st.subheader("Business Expenses")
-            year_data["advertising"] = st.number_input("Advertising ($)", step=50, key=f"adv_{i}")
-            year_data["contract_labor"] = "Out of Scope"
-            year_data["commission_and_fees"] = st.number_input("Commission ($)", step=50, key=f"comm_{i}")
-            year_data["depletion"] = "Out of Scope"
-            year_data["employee_benefits_programs"] = "Out of Scope"
-            year_data["health_insurance"] = st.number_input("Health Insurance ($)", step=50, key=f"hi_{i}")
-            year_data["insurance_other_than_health"] = st.number_input("Insurance ($)", step=50, key=f"ins_{i}")
-            year_data["mortgage_interest"] = "Out of Scope"
-            year_data["other_interest"] = st.number_input("Insurance ($)", step=50, key=f"other_interest_{i}")            
-            year_data["legal_and_professional_services"] = st.number_input("Legal expenses($)", step=50, key=f"legal_{i}")
-            year_data["office_expenses"] = st.number_input("Office expeneses ($)", step=50, key=f"office_{i}")
-            year_data["pension_and_profit_sharing"] = "Out of Scope"
-            year_data["rent_or_lease"] = st.number_input("Rent or Lease of Property or Equipement ($)", step=50, key=f"equip_{i}")
-            #year_data["b_property"] = st.number_input("Property Rent", step=50, key=f"rent_{i}")
-            year_data["repairs_and_maintenance"] = st.number_input("Repairs ($)", step=50, key=f"rep_{i}")
-            year_data["supplies"] = st.number_input("Supplies ($)", step=50, key=f"supp_{i}")
-            year_data["taxes_and_licenses"] = st.number_input("Taxes & Licenses ($)", step=50, key=f"tax_{i}")
-            year_data["travel"] = st.number_input("Travel ($)", step=50, key=f"travel_{i}")
-            year_data["meals_and_entertainment"] = "Out of Scope"
-            year_data["utilities"] = st.number_input("Utilities ($)" , step=50, key=f"util_{i}")
-            year_data["wages"] = st.number_input("Wages ($)", step=50, key=f"wages_{i}")
-            year_data["other_expenses"] = st.number_input("Other Expenses ($)", step=50, key=f"other_expenses_{i}")
-            if year_data["other_expenses"] > 0:
-                year_data["other_expenses_explaination"] = st.text_input(
-                    "Please explain Other Expenses:",
-                    key=f"other_expenses_explaination_{i}"
+            st.warning("To be deductible, a business expense must be both ordinary and necessary. An ordinary expense is one that is common and accepted in your industry. A necessary expense is one that is helpful and appropriate for your trade or business.")
+
+            business["advertising"] = st.number_input("Advertising", step=50, key=f"adv_{i}")
+            business['contract_labor']="Out of Scope"
+            business["commission_and_fees"] = st.number_input("Commission & Fees", step=50, key=f"comm_{i}")
+            business['depletion']="Out of Scope"
+            business['employee_benefit_programs']="Out of Scope"
+            business["health_insurance"] = st.number_input("Health Insurance", step=50, key=f"hi_{i}")
+            business["insurance_other_than_health"] = st.number_input("Insurance (Other)", step=50, key=f"ins_{i}")
+            business['long_term_care']="Out of Scope"
+            business['mortgage_interest']="Out of Scope"
+            business["other_interest"] = st.number_input("Other Interest", step=50, key=f"other_interest_{i}")
+            business["legal_and_professional_services"] = st.number_input("Legal", step=50, key=f"legal_{i}")
+            business["office_expenses"] = st.number_input("Office Expenses", step=50, key=f"office_{i}")
+            business['pension_and_profit_sharing']="Out of Scope"
+            business["rent_or_lease_of_equipment"] = st.number_input("Rent or Lease of Equipment", step=50, key=f"rent_eq_{i}")
+            business["rent_or_lease_of_property"] = st.number_input("Rent or Lease of Property", step=50, key=f"rent_pr_{i}")
+            business["repairs_and_maintenance"] = st.number_input("Repairs", step=50, key=f"rep_{i}")
+            business["supplies"] = st.number_input("Supplies", step=50, key=f"supp_{i}")
+            business["taxes_and_licenses"] = st.number_input("Taxes and Licenses", step=50, key=f"taxes_{i}")
+            business["travel"] = st.number_input("Travel", step=50, key=f"travel_{i}")
+            business['meals_50_per']="Out of Scope"
+            business['meals_80_per']="Out of Scope"
+            business["utilities"] = st.number_input("Utilities", step=50, key=f"util_{i}")
+            business["wages"] = st.number_input("Wages", step=50, key=f"wages_{i}")
+            business["other_expenses"] = st.number_input("Other Expenses", step=50, key=f"other_{i}")
+
+            if business["other_expenses"] > 0:
+                business["other_expenses_explanation"] = st.text_input(
+                    "Explain Other Expenses",
+                    key=f"other_exp_{i}"
                 )
-            # ---------------- VEHICLE ----------------
-            st.subheader("Car and Truck Expenses")
 
-            year_data["SCH_C_vehicle_desc"] = st.text_input(
-                "Vehicle Description",
-                key=f"desc_{i}"
-            )
-            year_data[f"SCH_C_vehicle_date"] = st.date_input(
-                "Date Placed in Service",
-                key=f"date_{i}"
-            )
-            year_data["buesiness_miles"] = st.number_input(
-                "Business Miles",
-                step=50,
-                key=f"miles_{i}",
-                help="Do not include commuting mileage."
-            )
-            year_data[f"SCH_C_vehicle_other"] = st.radio(
-                "Other vehicle available?",
-                options=yes_no,
-                index=None,
-                key=f"other_veh_available_{i}"
-            )
+            # =========================
+            # VEHICLE
+            # =========================
+            st.subheader("Vehicle")
 
-            year_data[f"SCH_C_vehicle_off_duty"] = st.radio(
-                "Available off duty?",
-                options=yes_no,
-                index=None,
-                key=f"off_duty_{i}"
-            )
+            business["vehicle_desc"] = st.text_input("Vehicle Description", key=f"veh_{i}")
+            business["vehicle_date"] = st.date_input("Placed in Service", key=f"veh_date_{i}")
+            business["business_miles"] = st.number_input("Business Miles", step=50, key=f"miles_{i}")
 
-            year_data[f"SCH_C_vehicle_evidence"] = st.radio(
-                "Evidence available?",
-                options=yes_no,
-                index=None,
-                key=f"evidence_{i}"
-            )
+            business["vehicle_other"] = st.radio("Other vehicle available?", yes_no, index=None, key=f"veh_other_{i}")
+            business["vehicle_off_duty"] = st.radio("Available off duty?", yes_no, index=None, key=f"veh_off_{i}")
+            business["vehicle_evidence"] = st.radio("Evidence available?", yes_no, index=None, key=f"veh_ev_{i}")
 
-            # ✅ APPEND INSIDE LOOP (FIXED)
-            answers["schedule_c_details"].append(year_data)
+            schedule_c_list.append(business)
 
+        # =========================
+        # FINAL STRUCTURE (LIKE CDCC)
+        # =========================
+        answers["Schedule_C_Details"] = {
+            "tax_year": Tax_Year,
+            "mileage_rate": standard_mileage_rate,
+            "businesses": schedule_c_list
+        }   
 
 def SchD():
     global answers, yes_no, typical_basic_response, pronouns, pronouns2
@@ -1102,8 +1155,15 @@ def Deductions():
                 question=f"Did {pronouns} want to take an itemized deduction?",
                 input_type="radio",
                 options=typical_basic_response,
-                help_text="Most taxpayers take their standard deduction (> $15,000) and do not itetmize as only certain expeses qualify. \n\n Qualified expenses includes: \n\n mortgage interest, unreimbursed medical expenses, gifts to charity. real estate, local, and state taxes paid."
-            )
+                help_text = (
+                    "Most taxpayers take the standard deduction and usually do not itemize, as only certain expenses qualify.\n\n"
+                    "Qualified itemized expenses include:\n\n"
+                    "- Mortgage interest\n"
+                    "- Unreimbursed medical expenses\n"
+                    "- Charitable contributions\n"
+                    "- Real estate taxes\n"
+                    "- State and local taxes paid"
+                )            )
         filings_statuses2 = ["Single", "Head of Houeshold", "Married Filing Jointly", "Married Filing Separately","Qualified Surviving Spouse"]
         sch_a_expensess=["Mortgage Interest","Real Estate Taxes","Cash Gifts to Charity","Non-Cash Gifts to Charity","DMV Tags","Medical Expenses","Gambling Losses","Other"]
         if answers.get('Itemize_Question') == "Yes":
@@ -1228,7 +1288,7 @@ def CDCC():
 
             cdcc_background = {}
 
-            cdcc_background["tax_zero"] = st.radio(
+            cdcc_background["CDCC_tax_zero"] = st.radio(
                 "Is your taxable income or tax liability $0?",
                 options=typical_basic_response,
                 index=None,
@@ -1237,7 +1297,7 @@ def CDCC():
 
             cdcc_background["employer_benefits"] = st.radio(
                 "Did you receive dependent care benefits not on W-2?",
-                options=yes_no,
+                options=typical_basic_response,
                 index=None,
                 key="CDCC_employer_benefits"
             )
@@ -1251,7 +1311,7 @@ def CDCC():
 
             if cdcc_background["disability_student"] == "Yes":
                 cdcc_background["months_you"] = st.number_input(
-                    "Months YOU unable to work",
+                    "Months you unable to work",
                     min_value=0,
                     max_value=12,
                     step=1,
@@ -1260,15 +1320,14 @@ def CDCC():
 
                 if answers.get("Filing_Status") == "Married Filing Jointly":
                     cdcc_background["months_spouse"] = st.number_input(
-                        "Months SPOUSE unable to work",
+                        "Months spouse unable to work",
                         min_value=0,
                         max_value=12,
                         step=1,
                         key="CDCC_months_spouse"
                     )
-
             # =========================
-            # CHILD LOOP (LIKE SCHEDULE C BUSINESSES)
+            # CHILD LOOP
             # =========================
             st.subheader("Child Information")
             num_children = st.number_input(
@@ -1284,7 +1343,6 @@ def CDCC():
 
             for i in range(int(num_children)):
                 child_data = {}
-
                 # ---------------- CHILD INFO ----------------
                 child_data["Name"] = st.text_input(
                     "Child’s Name",
@@ -1368,7 +1426,7 @@ def CDCC():
             # =========================
             # STORE FINAL STRUCTURE
             # =========================
-            answers["CDCC_details"] = {
+            answers["CDCC_Details"] = {
                 "background": cdcc_background,
                 "children": answers["CDCC_Children"]
             }
@@ -1492,13 +1550,13 @@ def EducationCredits():
                     student["Education_Credit"]="American Opportunity Credit"
                 else:
                     student["Education_Credit"]="Life Time Learning"
-                st.write(f"### Calculated Qualified Expenses: $**{qee}**")
+                st.write(f"### Calculated Qualified Educational  Expenses: $**{qee}**")
                 if qee > 0:
                     st.success("📚 Eligible qualified education expenses")
                 elif qee < 0:
                     st.warning("⚠️ Possible taxable scholarship income")
                 else:
-                    st.warning("No net qualified expenses")
+                    st.warning("No net qualified educational expenses")
                 # ---------------- APPEND ----------------
                 answers["EDU_students"].append(student)
             # =========================

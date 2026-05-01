@@ -69,6 +69,8 @@ def generate_pdf(answers_dict):
     pdf.set_font("Arial", "", 11)
 
     for key, value in answers_dict.items():
+        if key.lower() in ("cdcc_children" "edu_students" "ssa"):
+            continue
         if key=="PII":
             pdf.set_font("Arial", "B", 11)
             pdf.cell(0, 7, f"Basic Information", ln=True)
@@ -145,29 +147,72 @@ def generate_pdf(answers_dict):
         # =========================
         # SCHEDULE C DETAILS
         # =========================
-        if key == "schedule_c_details" and isinstance(value, list):
+
+        if key == "Schedule_C_Details":
+
+            schc = value  # this is the full dict
+            businesses = schc.get("businesses", [])
+
             expense_order = [
-                "advertising","office_expenses","contract_labor",
-                "pension_and_profit_sharing","commission_and_fees",
-                "rent_or_lease","depletion","repairs_and_maintenance",
-                "employee_benefits_programs","supplies","health_insurance",
-                "taxes_and_licenses","insurance_other_than_health","travel",
-                "mortgage_interest","meals_and_entertainment","other_interest",
-                "utilities","legal_and_professional_services","wages"
+                "advertising",
+                "contract_labor",
+                "commission_and_fees",
+                "depletion",
+                "employee_benefit_programs",
+                "health_insurance",
+                "insurance_other_than_health"
+                "long_term_care",
+                "mortgage_interest",
+                "other_interest",
+                "office_expenses"
+                "pension_and_profit_sharing",
+                "legal_and_professional_services",
+                "rent_or_lease_of_equipment",
+                "rent_or_lease_of_property",
+                "repairs_and_maintenance",
+                "supplies",
+                "taxes_and_licenses",
+                "travel",
+                "meals_50_per",
+                "meals_80_per",
+                "utilities",
+                "wages",
+                "other_expenses"
             ]
+            expense_order = [
+                "advertising",   "pension_and_profit_sharing",
+                "contract_labor","rent_or_lease_of_equipment",
+                "commission_and_fees",  "rent_or_lease_of_property",
+                "depletion", "repairs_and_maintenance",
+                "employee_benefit_programs", "supplies",
+                "health_insurance", "taxes_and_licenses",
+                "insurance_other_than_health", "travel",
+                "long_term_care","meals_50_per",
+                "mortgage_interest", "meals_80_per",
+                "other_interest",  "utilities",
+                "legal_and_professional_services","wages",
+                "office_expenses",  "other_expenses"
+            ]            
             def labelize(k):
                 return k.replace("_", " ").title()
+
             col_w = (pdf.w - pdf.l_margin - pdf.r_margin) / 4
             row_h = 7
-            for i, biz in enumerate(value):
-                pdf.add_page() 
+
+            for i, biz in enumerate(businesses):
+
+#                pdf.add_page()
                 pdf.set_font("Arial", "B", 11)
                 pdf.cell(0, 7, f"Business #{i+1}", ln=True)
                 pdf.ln(1)
-                # Income
+
+                # =========================
+                # INCOME
+                # =========================
                 pdf.set_font("Arial", "B", 11)
                 pdf.cell(0, 6, "Income", ln=True)
                 pdf.set_font("Arial", "", 11)
+
                 income_fields = [
                     "1099_nec_amounts",
                     "1099_k_amounts",
@@ -176,22 +221,30 @@ def generate_pdf(answers_dict):
                     "business_type",
                     "other_business"
                 ]
+
                 for k in income_fields:
                     if k in biz:
-                        v = clean(biz.get(k))
                         pdf.cell(70, 6, f"{labelize(k)}:", border=0)
-                        pdf.cell(0, 6, v, ln=True)
+                        pdf.cell(0, 6, clean(biz.get(k)), ln=True)
+
                 pdf.ln(2)
-                # Expense table
+
+                # =========================
+                # EXPENSE TABLE
+                # =========================
                 pdf.set_font("Arial", "B", 9)
+
                 headers = ["Expense", "Amount", "Expense", "Amount"]
                 for h in headers:
                     pdf.cell(col_w, row_h, h, border=1, align="C")
                 pdf.ln()
+
                 pdf.set_font("Arial", "", 9)
+
                 ordered = [(k, clean(biz.get(k, 0))) for k in expense_order if k in biz]
 
                 odd, even = [], []
+
                 for k, v in ordered:
                     if (expense_order.index(k) + 1) % 2:
                         odd.append((k, v))
@@ -214,76 +267,94 @@ def generate_pdf(answers_dict):
 
                 pdf.ln(4)
 
-                # Vehicle
+                # =========================
+                # VEHICLE
+                # =========================
                 pdf.set_font("Arial", "B", 10)
                 pdf.cell(0, 6, "Vehicle Information", ln=True)
                 pdf.set_font("Arial", "", 9)
 
-                vehicle_fields = [
-                    "SCH_C_vehicle_desc",
-                    "SCH_C_vehicle_date",
-                    "buesiness_miles",
-                    "SCH_C_vehicle_other",
-                    "SCH_C_vehicle_off_duty",
-                    "SCH_C_vehicle_evidence"
-                ]
-                for k in vehicle_fields:
+                vehicle_map = {
+                    "vehicle_desc": "SCH_C_vehicle_desc",
+                    "vehicle_date": "SCH_C_vehicle_date",
+                    "business_miles": "business_miles",
+                    "vehicle_other": "SCH_C_vehicle_other",
+                    "vehicle_off_duty": "SCH_C_vehicle_off_duty",
+                    "vehicle_evidence": "SCH_C_vehicle_evidence"
+                }
+
+                for k, pdf_label in vehicle_map.items():
                     if k in biz:
-                        pdf.cell(70, 6, f"{labelize(k)}:", border=0)
+                        pdf.cell(70, 6, f"{labelize(pdf_label)}:", border=0)
                         pdf.cell(0, 6, clean(biz.get(k)), ln=True)
+
                 pdf.ln(2)
+        if key == "SSA_Lump_Sum_Detail":
+
+            data = value or {}
+            years = data.get("lump_sum_details") or []
+
+            if not years:
+                continue
+
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 8, "Social Security Lump-Sum Details", ln=True)
+            pdf.ln(2)
+
+            def val(x):
+                return "" if x is None else str(x)
+
+            for i, year in enumerate(years, start=1):
+
+                if not isinstance(year, dict):
+                    continue
+
+                pdf.set_font("Arial", "B", 11)
+                pdf.cell(0, 7, f"Prior Year #{i}", ln=True)
+
+                pdf.set_font("Arial", "", 10)
+
+                pdf.cell(60, 6, "Tax Year:", border=0)
+                pdf.cell(0, 6, val(year.get("Tax_Year")), ln=True)
+
+                pdf.cell(60, 6, "Filing Status:", border=0)
+                pdf.cell(0, 6, val(year.get("Filing_Status")), ln=True)
+
+                pdf.cell(60, 6, "Gross SSA:", border=0)
+                pdf.cell(0, 6, val(year.get("Gross_SSA")), ln=True)
+
+                pdf.cell(60, 6, "Lump Sum:", border=0)
+                pdf.cell(0, 6, val(year.get("Lump_Sum")), ln=True)
+
+                pdf.cell(60, 6, "Taxable SSA:", border=0)
+                pdf.cell(0, 6, val(year.get("Taxable_SSA")), ln=True)
+
+                pdf.cell(60, 6, "AGI:", border=0)
+                pdf.cell(0, 6, val(year.get("AGI")), ln=True)
+
+                pdf.cell(60, 6, "Adjustments:", border=0)
+                pdf.cell(0, 6, val(year.get("Adjustments")), ln=True)
+
+                pdf.cell(60, 6, "Tax-Exempt Interest:", border=0)
+                pdf.cell(0, 6, val(year.get("Tax_Exempt_Interest")), ln=True)
+
+                pdf.cell(60, 6, "Taxable SSA:", border=0)
+                pdf.cell(0, 6, val(year.get("Taxable_SSA")), ln=True)
+
+                pdf.cell(60, 6, "Net SSA:", border=0)
+                pdf.cell(0, 6, val(year.get("Net_SSA")), ln=True)
+
+                pdf.ln(3)
+
             continue
-        if key == "ssa_lump_sum_details" and isinstance(value, list):
-            years = value or []
-            ty=(value[0].get("Tax_Year"))
-            if ty =='':
-                continue
-            if years and ty != '':
-                pdf.add_page()
-                pdf.set_font("Arial", "B", 12)
-                pdf.cell(0, 8, "Social Security Lump-Sum Details", ln=True)
-                pdf.ln(2)
-                for i, year in enumerate(years, start=1):
-                    if not isinstance(year, dict):
-                        continue
-                    pdf.set_font("Arial", "B", 11)
-                    pdf.cell(0, 7, f"Prior Year #{i}", ln=True)
-
-                    pdf.set_font("Arial", "", 10)
-
-                    pdf.cell(60, 6, "Tax Year:", border=0)
-                    pdf.cell(0, 6, str(year.get("Tax_Year") or "Not Answered"), ln=True)
-
-                    pdf.cell(60, 6, "Filing Status:", border=0)
-                    pdf.cell(0, 6, str(year.get("Filing_Status") or "Not Answered"), ln=True)
-
-                    pdf.cell(60, 6, "Total SSA Received:", border=0)
-                    pdf.cell(0, 6, str(year.get("ssa_received") or 0), ln=True)
-
-                    pdf.cell(60, 6, "Lump Sum Portion:", border=0)
-                    pdf.cell(0, 6, str(year.get("lump_sum_amount") or 0), ln=True)
-
-                    pdf.cell(60, 6, "AGI:", border=0)
-                    pdf.cell(0, 6, str(year.get("agi") or 0), ln=True)
-
-                    pdf.cell(60, 6, "Adjustments:", border=0)
-                    pdf.cell(0, 6, str(year.get("adjustments") or 0), ln=True)
-
-                    pdf.cell(60, 6, "Tax-Exempt Interest:", border=0)
-                    pdf.cell(0, 6, str(year.get("tax_exempt_interest") or 0), ln=True)
-
-                    pdf.cell(60, 6, "Taxable SSA:", border=0)
-                    pdf.cell(0, 6, str(year.get("taxable_ssa") or 0), ln=True)
-
-                    pdf.ln(3)
-                continue
         # =========================
         # CDCC
         # =========================
-        if key == "CDCC_details":
+        
+        if key == "CDCC_Details":
             children = (value or {}).get("children") or []
             if children:
-                pdf.add_page() 
+#                pdf.add_page() 
                 if isinstance(children, list) and children:
                     pdf.set_font("Arial", "B", 12)
                     pdf.cell(0, 8, "Child & Dependent Care Credit", ln=True)
@@ -312,13 +383,14 @@ def generate_pdf(answers_dict):
                         pdf.cell(60, 6, "Provider_Phone_Number:", border=0)
                         pdf.cell(0, 6, str(child.get("Provider_Phone_Number") or "Not Answered"), ln=True)
                         pdf.ln(3)
-                pdf.add_page() 
+#                pdf.add_page() 
                 continue
 
         # =========================
         # EDUCATION
         # =========================
         if key == "EducationCredits":
+#            print(key)
             students = (value or {}).get("students") or []
             if students:
                 for i, stu in enumerate(students, 1):
@@ -330,36 +402,50 @@ def generate_pdf(answers_dict):
                     pdf.set_font("Arial", "B", 11)
                     pdf.cell(0, 7, f"Student #{i}", ln=True)
                     pdf.set_font("Arial", "", 10)
+                    def val(x):
+                        return "Not Answered" if x is None else str(x)
+                    
                     pdf.cell(60, 6, "Name:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Name") or 0), ln=True)
+                    pdf.cell(0, 6, val(stu.get("Name")), ln=True)
+
                     pdf.cell(60, 6, "Relationship:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Relationship") or 0), ln=True)
+                    pdf.cell(0, 6, val(stu.get("Relationship")), ln=True)
+
                     pdf.cell(60, 6, "Age:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Age") or 0), ln=True)
-                    pdf.cell(60, 6, "Enrollment_Status:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Enrollment_Status") or 0), ln=True)
+                    pdf.cell(0, 6, val(stu.get("Age")), ln=True)
+
+                    pdf.cell(60, 6, "Enrollment Status:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Enrollment_Status")), ln=True)
+
                     pdf.cell(60, 6, "Level:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Level") or 0), ln=True)
-                    pdf.cell(60, 6, "Level:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Level") or 0), ln=True)
-                    pdf.cell(60, 6, "Years_Post_Secondary:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Years_Post_Secondary") or 0), ln=True)
-                    pdf.cell(60, 6, "Felony_Drug:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Felony_Drug") or 0), ln=True)
+                    pdf.cell(0, 6, val(stu.get("Level")), ln=True)
+
+                    pdf.cell(60, 6, "Years Post Secondary:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Years_Post_Secondary")), ln=True)
+
+                    pdf.cell(60, 6, "Felony Drug:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Felony_Drug")), ln=True)
+
                     pdf.cell(60, 6, "AOTC:", border=0)
-                    pdf.cell(0, 6, str(stu.get("AOTC") or 0), ln=True)
-                    pdf.cell(60, 6, "box4_or_6 (Adjustments, OOS):", border=0)
-                    pdf.cell(0, 6, str(stu.get("box4_or_6") or 0), ln=True)
-                    pdf.cell(60, 6, "Payments_Box1 (Payments received):", border=0)
-                    pdf.cell(0, 6, str(stu.get("Payments_Box1") or 0), ln=True)
-                    pdf.cell(60, 6, "Scholarships_Box5:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Scholarships_Box5") or 0), ln=True)
-                    pdf.cell(60, 6, "Additional_Qualified_Expenses:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Additional_Qualified_Expenses") or 0), ln=True)
-                    pdf.cell(60, 6, "Education_Credit:", border=0)
-                    pdf.cell(0, 6, str(stu.get("Education_Credit") or 0), ln=True)
+                    pdf.cell(0, 6, val(stu.get("AOTC")), ln=True)
+
+                    pdf.cell(60, 6, "Box 4 or 6 (Adjustments, OOS):", border=0)
+                    pdf.cell(0, 6, val(stu.get("box4_or_6")), ln=True)
+
+                    pdf.cell(60, 6, "Payments Box 1:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Payments_Box1")), ln=True)
+
+                    pdf.cell(60, 6, "Scholarships Box 5:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Scholarships_Box5")), ln=True)
+
+                    pdf.cell(60, 6, "Additional Qualified Expenses:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Additional_Qualified_Expenses")), ln=True)
+
+                    pdf.cell(60, 6, "Education Credit:", border=0)
+                    pdf.cell(0, 6, val(stu.get("Education_Credit")), ln=True)
+
                     pdf.ln(3)
-            pdf.add_page()
+#            pdf.add_page()
             continue
         if key=="IRS_Refund":
             pdf.set_font("Arial", "B", 11)
